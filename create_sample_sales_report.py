@@ -2,24 +2,28 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-# Luodaan realistinen myyntiraportti
-def create_sample_sales_report():
-    # Aloitetaan vuoden alusta
-    start_date = datetime(2023, 1, 1)
+def create_sample_sales_report(years=3):
+    # Aloitetaan kolme vuotta sitten
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=years*365)
+    
     dates = []
     sales_data = []
+    weekdays = []
+    customers = []
+    paydays = []
+    events = []
     
-    # Luodaan 365 päivän data
-    for i in range(365):
-        current_date = start_date + timedelta(days=i)
-        
-        # Perusmyynti arkipäiville
+    current_date = start_date
+    while current_date <= end_date:
+        # Perusmyynti arkipäiville (1000-1400€)
         base_sales = np.random.normal(1200, 200)
         
         # Viikonlopun korotus (pe-la +40%, su +20%)
-        if current_date.weekday() in [4, 5]:
+        weekday = current_date.weekday()
+        if weekday in [4, 5]:  # pe-la
             base_sales *= 1.4
-        elif current_date.weekday() == 6:
+        elif weekday == 6:  # su
             base_sales *= 1.2
             
         # Palkkapäivien vaikutus (15. ja viimeinen päivä)
@@ -28,39 +32,45 @@ def create_sample_sales_report():
             base_sales *= 1.3
             
         # Kausivaihtelu (kesällä enemmän myyntiä)
-        summer_effect = 1 + 0.2 * np.sin(2 * np.pi * (i - 172) / 365)  # Huippu heinäkuussa
+        day_of_year = current_date.timetuple().tm_yday
+        summer_effect = 1 + 0.3 * np.sin(2 * np.pi * (day_of_year - 172) / 365)  # Huippu heinäkuussa
         base_sales *= summer_effect
         
         # Lisätään satunnaiset tapahtumat (10% päivistä)
         has_event = 1 if np.random.random() < 0.1 else 0
         if has_event:
             base_sales *= 1.25
-            
-        # Pyöristetään myynti kahden desimaalin tarkkuuteen
-        total_sales = round(base_sales, 2)
         
-        # Jaetaan myynti eri kategorioihin
-        ruoka = total_sales * np.random.normal(0.6, 0.05)  # n. 60% ruokaa
-        juomat = total_sales * np.random.normal(0.3, 0.05)  # n. 30% juomia
-        muut = total_sales - ruoka - juomat  # loput muuta myyntiä
+        # Arvioidaan asiakasmäärä
+        avg_customers_per_euro = np.random.normal(0.05, 0.01)  # keskimäärin 1 asiakas / 20€
+        customer_count = int(base_sales * avg_customers_per_euro)
         
-        # Lisätään päivän tiedot
-        sales_data.append({
-            'Päivämäärä': current_date.strftime('%d.%m.%Y'),
-            'Viikonpäivä': ['Ma', 'Ti', 'Ke', 'To', 'Pe', 'La', 'Su'][current_date.weekday()],
-            'Kokonaismyynti': round(total_sales, 2),
-            'Ruokamyynti': round(ruoka, 2),
-            'Juomamyynti': round(juomat, 2),
-            'Muu myynti': round(muut, 2),
-            'Asiakkaita': int(total_sales / np.random.normal(25, 5)),  # keskiostos 20-30€
-            'Palkkapäivä': is_payday,
-            'Tapahtuma': has_event
-        })
+        # Tallennetaan päivän tiedot
+        dates.append(current_date)
+        sales_data.append(round(base_sales, 2))
+        weekdays.append(weekday + 1)  # 1-7, ma-su
+        customers.append(customer_count)
+        paydays.append(is_payday)
+        events.append(has_event)
+        
+        current_date += timedelta(days=1)
     
-    # Luodaan DataFrame ja tallennetaan CSV-tiedostoksi
-    df = pd.DataFrame(sales_data)
-    df.to_csv('myyntiraportti.csv', index=False, decimal=',', sep=';')
-    print("Myyntiraportti luotu tiedostoon 'myyntiraportti.csv'")
+    # Luodaan DataFrame
+    df = pd.DataFrame({
+        'Päivämäärä': dates,
+        'Kokonaismyynti': sales_data,
+        'Viikonpäivä': weekdays,
+        'Asiakkaita': customers,
+        'Palkkapäivä': paydays,
+        'Tapahtuma': events
+    })
+    
+    # Tallennetaan CSV-tiedostoon
+    df.to_csv('myyntiraportti.csv', sep=';', decimal=',', index=False, 
+              date_format='%d.%m.%Y')
+    
+    print(f"Luotu myyntiraportti {len(df)} päivälle välille "
+          f"{start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}")
 
 if __name__ == "__main__":
-    create_sample_sales_report() 
+    create_sample_sales_report(years=3) 
