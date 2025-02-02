@@ -1,23 +1,48 @@
-# Ravintolan Myyntiennuste
+## Ravintolan Myyntiennuste
 
-Sovellus ravintolan myynnin ennustamiseen koneoppimisen avulla. Ohjelma käyttää historiallista myyntidataa oppiakseen myyntiin vaikuttavat tekijät ja tekee ennusteita tuleville päiville.
+Tämä sovellus ennustaa ravintolan tulevaa myyntiä hyödyntäen historiallista myyntidataa ja koneoppimismalleja. Ennusteet auttavat ravintolan johtoa tekemään tietoon perustuvia päätöksiä esimerkiksi henkilöstön ja varastojen hallinnassa.
 
-## Ominaisuudet
+## Koneoppimismallin kouluttaminen TensorFlow'lla
 
-- Yksittäisen päivän myyntiennuste
-- Aikavälin myyntiennuste visualisointeineen
-- Huomioi seuraavat tekijät:
-  - Viikonpäivä
-  - Asiakasmäärä
-  - Palkkapäivät
-  - Tapahtumat lähistöllä
-- Vertailu historiallisiin keskiarvoihin
-- Visuaalinen esitys ennusteista
+Sovellus käyttää TensorFlow'ta myynnin ennustamiseen. Alla on yhteenveto mallin koulutusprosessista:
+
+# Kirjastot
+
+- tensorflow
+- numpy
+- pandas
+- matplotlib
+
+# Datan lataaminen
+
+Historiallinen myyntidata ladataan CSV-tiedostosta myyntiraportti.csv. Data sisältää seuraavat sarakkeet:
+
+- Päivämäärä: Myyntipäivä
+- Kokonaismyynti: Päivän kokonaismyynti euroina
+- Viikonpäivä: Päivän järjestysnumero viikossa (1=maanantai, 7=sunnuntai)
+- Asiakkaita: Päivän asiakasmäärä
+
+# Mallin koulutus
+
+Mallia koulutetaan 1000 epochilla.
+Koulutettu malli pyrkii ennustamaan tulevan päivän myynnin syötettyjen piirteiden perusteella.
+
+## Testidatan luominen
+
+Sovellus sisältää skriptin create_sample_sales_report.py, joka generoi testidataa seuraavasti:
+
+- Aikaväli: Dataa luodaan halutulle ajanjaksolle (oletuksena yksi vuosi).
+- Päivittäinen myynti: Perusmyynti arkipäiville (maanantai–torstai) arvotaan normaalijakaumasta (keskiarvo 1200€, keskihajonta 200€). Viikonloppuisin myyntiä korotetaan: perjantaina ja lauantaina +40%, sunnuntaina +20%.
+- Kausivaihtelu: Myyntiin lisätään kausivaihtelua siten, että kesäkuukausina (huippu heinäkuussa) myynti on korkeampaa.
+- Asiakasmäärä: Asiakasmäärä arvioidaan suhteessa myyntiin siten, että keskimäärin yksi asiakas tuo 20€ myyntiä.
+- Datan tallennus: Luotu data tallennetaan CSV-tiedostoon myyntiraportti.csv.
+
+Tämä testidata mahdollistaa mallin kehittämisen ja testaamisen ilman oikeaa historiallista myyntidataa.
 
 ## Käyttöönotto
 
 1. Varmista, että sinulla on Python 3.8 tai uudempi asennettuna
-2. Asenna tarvittavat kirjastot: 
+2. Asenna tarvittavat kirjastot terminaalissa: 
 
 pip install tensorflow numpy pandas matplotlib
 

@@ -11,8 +11,6 @@ def create_sample_sales_report(years=3):
     sales_data = []
     weekdays = []
     customers = []
-    paydays = []
-    events = []
     
     current_date = start_date
     while current_date <= end_date:
@@ -26,20 +24,10 @@ def create_sample_sales_report(years=3):
         elif weekday == 6:  # su
             base_sales *= 1.2
             
-        # Palkkapäivien vaikutus (15. ja viimeinen päivä)
-        is_payday = 1 if current_date.day in [15, -1] else 0
-        if is_payday:
-            base_sales *= 1.3
-            
         # Kausivaihtelu (kesällä enemmän myyntiä)
         day_of_year = current_date.timetuple().tm_yday
         summer_effect = 1 + 0.3 * np.sin(2 * np.pi * (day_of_year - 172) / 365)  # Huippu heinäkuussa
         base_sales *= summer_effect
-        
-        # Lisätään satunnaiset tapahtumat (10% päivistä)
-        has_event = 1 if np.random.random() < 0.1 else 0
-        if has_event:
-            base_sales *= 1.25
         
         # Arvioidaan asiakasmäärä
         avg_customers_per_euro = np.random.normal(0.05, 0.01)  # keskimäärin 1 asiakas / 20€
@@ -50,8 +38,6 @@ def create_sample_sales_report(years=3):
         sales_data.append(round(base_sales, 2))
         weekdays.append(weekday + 1)  # 1-7, ma-su
         customers.append(customer_count)
-        paydays.append(is_payday)
-        events.append(has_event)
         
         current_date += timedelta(days=1)
     
@@ -60,9 +46,7 @@ def create_sample_sales_report(years=3):
         'Päivämäärä': dates,
         'Kokonaismyynti': sales_data,
         'Viikonpäivä': weekdays,
-        'Asiakkaita': customers,
-        'Palkkapäivä': paydays,
-        'Tapahtuma': events
+        'Asiakkaita': customers
     })
     
     # Tallennetaan CSV-tiedostoon
@@ -73,4 +57,4 @@ def create_sample_sales_report(years=3):
           f"{start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}")
 
 if __name__ == "__main__":
-    create_sample_sales_report(years=3) 
+    create_sample_sales_report() 

@@ -19,9 +19,7 @@ def load_sales_data(filename='myyntiraportti.csv'):
         # Muodostetaan feature matrix
         X = np.column_stack([
             df['Viikonpäivä'],      # Viikonpäivä (1-7)
-            df['Asiakkaita'],       # Asiakasmäärä
-            df['Palkkapäivä'],      # Palkkapäivä (0/1)
-            df['Tapahtuma']         # Tapahtuma (0/1)
+            df['Asiakkaita']        # Asiakasmäärä
         ])
         
         y = df['Kokonaismyynti'].values
@@ -36,26 +34,18 @@ def load_sales_data(filename='myyntiraportti.csv'):
         print(f"Virhe tiedoston lukemisessa: {e}")
         exit(1)
 
-def predict_sales(model, df, weekday, is_payday, has_event):
+def predict_sales(model, df, weekday):
     """Ennustaa päivän myynnin ja asiakasmäärän"""
     if not (1 <= weekday <= 7):
         raise ValueError("Viikonpäivän tulee olla välillä 1-7")
     
     # Arvioidaan asiakasmäärä historiallisen datan perusteella
-    avg_customers = df[df['Päivämäärä'].dt.weekday == weekday]['Asiakkaita'].mean()
-    
-    # Säädetään asiakasmäärää palkkapäivän ja tapahtumien mukaan
-    if is_payday:
-        avg_customers *= 1.3
-    if has_event:
-        avg_customers *= 1.25
-    
+    avg_customers = df[df['Viikonpäivä'] == weekday]['Asiakkaita'].mean()
     estimated_customers = int(avg_customers)
     
     # Tehdään myyntiennuste
-    input_data = tf.convert_to_tensor([[weekday, estimated_customers, is_payday, has_event]], 
-                                    dtype=tf.float32)
-    prediction = model.predict(input_data)
+    input_data = tf.convert_to_tensor([[weekday, estimated_customers]], dtype=tf.float32)
+    prediction = model.predict(input_data, verbose=0)
     predicted_sales = max(0, prediction[0][0])
     
     return predicted_sales, estimated_customers
@@ -86,12 +76,11 @@ def create_prediction_for_period(model, df, start_date, end_date):
         estimated_customers = int(avg_customers)
         
         # Tehdään ennuste
-        input_data = tf.convert_to_tensor([[weekday, estimated_customers, is_payday, has_event]], 
-                                        dtype=tf.float32)
-        prediction = model.predict(input_data, verbose=0)[0][0]
+        input_data = tf.convert_to_tensor([[weekday, estimated_customers]], dtype=tf.float32)
+        prediction = model.predict(input_data, verbose=0)
         
         dates.append(current_date)
-        predictions.append(prediction)
+        predictions.append(prediction[0][0])
         
         current_date += timedelta(days=1)
     
@@ -148,7 +137,7 @@ def visualize_period_prediction(df, start_date, end_date, model):
     ticks = dates_list[::interval]
     
     # Luodaan merkintöjen tekstit (päivämäärä + viikonpäivä)
-    viikonpaivat = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai', 'Sunnuntai']
+    viikonpaivat = ['maanantai', 'tiistai', 'keskiviikko', 'torstai', 'perjantai', 'lauantai', 'sunnuntai']
     labels = [f"{d.strftime('%d.%m.')}\n{viikonpaivat[d.weekday()]}" for d in ticks]
     
     plt.xticks(ticks, labels, rotation=45, ha='right')
@@ -179,8 +168,8 @@ def main():
     
     # Määritellään malli
     model = tf.keras.Sequential([
-        tf.keras.layers.Dense(32, activation='relu', input_shape=(4,)),
-        tf.keras.layers.Dense(16, activation='relu'),
+        tf.keras.layers.Dense(16, activation='relu', input_shape=(2,)),  # Muutettu input_shape
+        tf.keras.layers.Dense(8, activation='relu'),
         tf.keras.layers.Dense(1)
     ])
     
@@ -211,7 +200,7 @@ def main():
         
         if valinta == "1":
             print("\nTee myyntiennuste:")
-            viikonpaivat = ['Maanantai', 'Tiistai', 'Keskiviikko', 'Torstai', 'Perjantai', 'Lauantai', 'Sunnuntai']
+            viikonpaivat = ['maanantai', 'tiistai', 'keskiviikko', 'torstai', 'perjantai', 'lauantai', 'sunnuntai']
             
             for i, paiva in enumerate(viikonpaivat):
                 print(f"{i+1} = {paiva}")
@@ -222,16 +211,11 @@ def main():
                     raise ValueError("Viikonpäivän tulee olla välillä 1-7")
                 weekday -= 1  # Muunnetaan indeksiksi (0-6)
                 
-                is_payday = 1 if input("Onko palkkapäivä? (k/e): ").lower() == 'k' else 0
-                has_event = 1 if input("Onko lähistöllä tapahtuma? (k/e): ").lower() == 'k' else 0
-                
-                predicted_sales, estimated_customers = predict_sales(model, df, weekday+1, is_payday, has_event)
+                predicted_sales, estimated_customers = predict_sales(model, df, weekday+1)
                 
                 print(f"\nEnnuste päivälle:")
                 print(f"Päivä: {viikonpaivat[weekday]}")
                 print(f"Ennustettu asiakasmäärä: {estimated_customers}")
-                print(f"Palkkapäivä: {'Kyllä' if is_payday else 'Ei'}")
-                print(f"Tapahtuma: {'Kyllä' if has_event else 'Ei'}")
                 print(f"Ennustettu myynti: {predicted_sales:.2f}€")
                 print(f"Ennustettu keskiostos: {predicted_sales/estimated_customers:.2f}€/asiakas")
                 
